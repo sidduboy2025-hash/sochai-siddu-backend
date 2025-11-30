@@ -13,7 +13,19 @@ app.use(express.urlencoded({ extended: true }));
 
 // MongoDB Connection
 const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/sochai-backend';
-mongoose.connect(mongoURI)
+
+// Connection options for Render free services (slow response times)
+const mongoOptions = {
+  serverSelectionTimeoutMS: 100000, // 100 seconds
+  socketTimeoutMS: 100000, // 100 seconds
+  connectTimeoutMS: 100000, // 100 seconds
+  bufferMaxEntries: 0,
+  bufferCommands: false,
+  maxPoolSize: 10,
+  minPoolSize: 5
+};
+
+mongoose.connect(mongoURI, mongoOptions)
 .then(() => {
   console.log('Connected to MongoDB successfully');
 })
