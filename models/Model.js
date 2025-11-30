@@ -159,7 +159,6 @@ modelSchema.pre('save', function(next) {
 // Index for better query performance
 modelSchema.index({ category: 1, status: 1 });
 modelSchema.index({ uploadedBy: 1 });
-modelSchema.index({ slug: 1 });
 modelSchema.index({ featured: -1, trendingScore: -1 });
 
 module.exports = mongoose.model('Model', modelSchema);
