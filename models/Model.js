@@ -9,7 +9,6 @@ const modelSchema = new mongoose.Schema({
   },
   slug: {
     type: String,
-    required: true,
     unique: true,
     trim: true,
     lowercase: true
@@ -146,12 +145,32 @@ const modelSchema = new mongoose.Schema({
 });
 
 // Generate slug from name before saving
-modelSchema.pre('save', function(next) {
-  if (this.isModified('name') && !this.slug) {
-    this.slug = this.name
+modelSchema.pre('save', async function(next) {
+  if (this.isModified('name') || !this.slug) {
+    let baseSlug = this.name
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '');
+    
+    let slug = baseSlug;
+    let counter = 1;
+    
+    // Check for existing slugs and append counter if needed
+    while (true) {
+      const existingModel = await this.constructor.findOne({ 
+        slug: slug, 
+        _id: { $ne: this._id } 
+      });
+      
+      if (!existingModel) {
+        break;
+      }
+      
+      slug = `${baseSlug}-${counter}`;
+      counter++;
+    }
+    
+    this.slug = slug;
   }
   next();
 });
