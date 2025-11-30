@@ -123,6 +123,16 @@ router.post('/signup', async (req, res) => {
 
   } catch (error) {
     console.error('Signup error:', error);
+    
+    // Handle specific MongoDB errors
+    if (error.name === 'MongooseError' && error.message.includes('bufferCommands')) {
+      return res.status(503).json({
+        success: false,
+        message: 'Database connection not ready. Please try again in a moment.',
+        error: 'Database connection issue'
+      });
+    }
+    
     res.status(500).json({
       success: false,
       message: 'Internal server error',
@@ -184,6 +194,16 @@ router.post('/login', async (req, res) => {
 
   } catch (error) {
     console.error('Login error:', error);
+    
+    // Handle specific MongoDB errors
+    if (error.name === 'MongooseError' && error.message.includes('bufferCommands')) {
+      return res.status(503).json({
+        success: false,
+        message: 'Database connection not ready. Please try again in a moment.',
+        error: 'Database connection issue'
+      });
+    }
+    
     res.status(500).json({
       success: false,
       message: 'Internal server error',
