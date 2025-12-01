@@ -350,4 +350,143 @@ router.delete('/:id', authenticateToken, async (req, res) => {
   }
 });
 
+// ADMIN ENDPOINTS
+
+// GET /api/models/admin/pending - Get all pending models (Admin)
+router.get('/admin/pending', async (req, res) => {
+  try {
+    const { page = 1, limit = 20 } = req.query;
+    const skip = (page - 1) * limit;
+
+    const models = await Model.find({ status: 'pending' })
+      .populate('uploadedBy', 'firstName lastName email')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    const totalModels = await Model.countDocuments({ status: 'pending' });
+    const totalPages = Math.ceil(totalModels / limit);
+
+    res.json({
+      success: true,
+      data: {
+        models,
+        pagination: {
+          currentPage: parseInt(page),
+          totalPages,
+          totalModels,
+          hasNext: page < totalPages,
+          hasPrev: page > 1
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('Get pending models error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+// PUT /api/models/admin/:id/status - Update model status (Admin)
+router.put('/admin/:id/status', async (req, res) => {
+  try {
+    const { status, rejectionReason } = req.body;
+
+    if (!['pending', 'approved', 'rejected'].includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid status. Must be: pending, approved, or rejected'
+      });
+    }
+
+    if (status === 'rejected' && !rejectionReason) {
+      return res.status(400).json({
+        success: false,
+        message: 'Rejection reason is required when rejecting a model'
+      });
+    }
+
+    const model = await Model.findById(req.params.id)
+      .populate('uploadedBy', 'firstName lastName email');
+
+    if (!model) {
+      return res.status(404).json({
+        success: false,
+        message: 'Model not found'
+      });
+    }
+
+    model.status = status;
+    if (status === 'rejected') {
+      model.rejectionReason = rejectionReason;
+    } else {
+      model.rejectionReason = undefined;
+    }
+
+    await model.save();
+
+    res.json({
+      success: true,
+      message: `Model ${status} successfully`,
+      data: { model }
+    });
+
+  } catch (error) {
+    console.error('Update model status error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+// GET /api/models/admin/all - Get all models with any status (Admin)
+router.get('/admin/all', async (req, res) => {
+  try {
+    const { status, page = 1, limit = 20 } = req.query;
+    const skip = (page - 1) * limit;
+
+    const filter = {};
+    if (status && status !== 'all') {
+      filter.status = status;
+    }
+
+    const models = await Model.find(filter)
+      .populate('uploadedBy', 'firstName lastName email')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    const totalModels = await Model.countDocuments(filter);
+    const totalPages = Math.ceil(totalModels / limit);
+
+    res.json({
+      success: true,
+      data: {
+        models,
+        pagination: {
+          currentPage: parseInt(page),
+          totalPages,
+          totalModels,
+          hasNext: page < totalPages,
+          hasPrev: page > 1
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('Get all models error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
 module.exports = router;
