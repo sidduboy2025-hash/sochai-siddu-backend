@@ -223,11 +223,19 @@ router.get('/', async (req, res) => {
 // GET /api/models/:id - Get a specific model by ID (Public)
 router.get('/:id', async (req, res) => {
   try {
+    const { id } = req.params;
+    
+    // Check if the id is a valid ObjectId
+    const mongoose = require('mongoose');
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid model ID format'
+      });
+    }
+
     const model = await Model.findOne({
-      $or: [
-        { _id: req.params.id },
-        { slug: req.params.id }
-      ],
+      _id: id,
       status: 'approved'
     }).populate('uploadedBy', 'firstName lastName');
 
